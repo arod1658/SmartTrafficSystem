@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大台北道路與大眾運輸智慧交通系統</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS styling */
+        :root {
+            --primary: #1a73e8;
+            --primary-hover: #1557b0;
+            --bg-glass: rgba(255, 255, 255, 0.95);
+            --bg-glass-dark: rgba(30, 30, 30, 0.85);
+            --text-dark: #202124;
+            --text-light: #f1f3f4;
+            --border-glass: rgba(0, 0, 0, 0.1);
+
+            /* Traffic Colors */
+            --traffic-green: #0f9d58;
+            --traffic-yellow: #f4b400;
+            --traffic-red: #db4437;
+            --traffic-orange: #ff6d00;
+            --traffic-blue: #4285F4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', '微軟正黑體', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #e5e3df;
+            color: var(--text-dark);
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #777;
+            font-size: 0.95rem;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: -2px;
+        }
+
+        .login-form {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .login-form.active {
+            display: flex;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 350px;
+            text-align: center;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: 60px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar h1 {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--primary);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            flex: 1;
+            position: relative;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar Panel */
+        .sidebar {
+            width: 400px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            z-index: 5;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+        }
+
+        /* Panel Content */
+        .panel {
+            display: none;
+            padding: 20px;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .panel.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Map Area */
+        .map-area {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* -------------------------------------------
+           [NEW] 登入彈窗內部載入進度條 (Login Loader)
+           ------------------------------------------- */
+        .login-loader {
+            position: relative;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            text-align: center;
+        }
+
+        .login-loader.show {
+            display: block;
+        }
+
+        .login-loader.fade-in {
+            opacity: 1;
+        }
+
+        /* Spinner 動畫 */
+        .login-loader .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(26, 115, 232, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        .login-loader span {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .login-loader .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-loader .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #4285f4, #34a853);
+            transition: width 0.4s ease-out;
+        }
+
+        /* Spinner 動畫 */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(26, 115, 232, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* UI Components */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #f1f3f4;
+        }
+
+        .card h2 {
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: #5f6368;
+            font-weight: 600;
+        }
+
+        .form-control {
+            padding: 10px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background: var(--traffic-orange);
+        }
+
+        .btn-danger:hover {
+            background: #e65c00;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: #e8f0fe;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            color: #5f6368;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.2rem;
+        }
+
+        .btn-icon.active {
+            background: #e8f0fe;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        /* Traffic Legend */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+            font-size: 0.85rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .legend h3 {
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            color: #5f6368;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Global Alert */
+        .global-alert {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150px);
+            background: rgba(255, 109, 0, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(255, 109, 0, 0.4);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+        }
+
+        .global-alert.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Mock List Items */
+        .list-item {
+            padding: 12px;
+            border: 1px solid #f1f3f4;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            background: #fff;
+        }
+
+        .list-item:hover {
+            background: #f8f9fa;
+            border-color: #dadce0;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item-desc {
+            font-size: 0.85rem;
+            color: #5f6368;
+            line-height: 1.4;
+        }
+
+        .list-item-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tag-orange {
+            background: var(--traffic-orange);
+        }
+
+        .tag-green {
+            background: var(--traffic-green);
+        }
+
+        .tag-blue {
+            background: var(--traffic-blue);
+        }
+
+        /* Accordion Header */
+        .accordion-header {
+            font-size: 0.95rem;
+            margin-top: 10px;
+            cursor: pointer;
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-header:hover {
+            background: #e8f0fe;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>大台北智慧交通系統</h2>
+            <div class="tabs">
+                <div class="tab active" onclick="TrafficSystem.switchAuthTab('login')">登入</div>
+                <div class="tab" onclick="TrafficSystem.switchAuthTab('register')">註冊</div>
+                <div class="tab" onclick="TrafficSystem.switchAuthTab('dev')">🛠️ 測試</div>
+            </div>
+
+            <div class="login-form active" id="form-login">
+                <div class="form-group"><label>帳號</label><input type="email" id="loginEmail" class="form-control"
+                        placeholder="輸入 Email"></div>
+                <div class="form-group"><label>密碼</label><input type="password" id="loginPassword" class="form-control"
+                        placeholder="輸入密碼"></div>
+                <button class="btn" onclick="TrafficSystem.handleLogin()">登入系統</button>
+            </div>
+
+            <div class="login-form" id="form-register">
+                <div class="form-group"><label>帳號</label><input type="email" id="regEmail" class="form-control"></div>
+                <div class="form-group"><label>密碼</label><input type="password" id="regPassword" class="form-control">
+                </div>
+                <div class="form-group"><label>角色</label>
+                    <select id="regRole" class="form-control">
+                        <option value="PUBLIC">👤 一般民眾</option>
+                        <option value="POLICE">👮 警察單位</option>
+                        <option value="MANAGEMENT">🏢 交通管理單位</option>
+                        <option value="WEATHER">⛅ 氣象單位</option>
+                        <option value="TRANSIT">🚇 運輸單位</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="TrafficSystem.handleRegister()">註冊並登入</button>
+            </div>
+
+            <div class="login-form" id="form-dev">
+                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('PUBLIC')" style="padding: 8px;">👤
+                    一般民眾</button>
+                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('POLICE')" style="padding: 8px;">👮
+                    警察單位</button>
+                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('MANAGEMENT')"
+                    style="padding: 8px;">🏢 交通管理單位</button>
+                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('WEATHER')" style="padding: 8px;">⛅
+                    氣象預報單位</button>
+                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('TRANSIT')" style="padding: 8px;">🚇
+                    大眾運輸單位</button>
+            </div>
+
+            <!-- [NEW] Progress Loader placed inside login box -->
+            <div id="mapLoader" class="login-loader">
+                <div class="spinner"></div>
+                <span id="loaderText">🔄 啟動加載程序...</span>
+                <div class="progress-container">
+                    <div id="loaderProgress" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Error Modal -->
+    <div class="modal-overlay" id="locationErrorModal">
+        <div class="modal-box">
+            <h3 style="color: var(--traffic-orange); margin-bottom: 15px;">⚠️ 無法取得 GPS 定位</h3>
+            <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px; line-height: 1.5;">
+                系統無法自動獲取您的位置，或是您拒絕了權限請求。已為您預設平移至「台北車站」，您可以手動拖曳地圖或點擊按鈕重設中心點。</p>
+            <button class="btn" onclick="TrafficSystem.startManualLocation()">手動在地圖上選取</button>
+        </div>
+    </div>
+
+    <div class="global-alert" id="globalAlert">
+        <span style="font-size: 1.2rem;">⚠️</span>
+        <span id="globalAlertText"></span>
+    </div>
+
+    <header class="navbar">
+        <h1><span>🚦</span> 大台北道路與大眾運輸智慧交通系統</h1>
+        <div class="user-info" id="userInfoDisplay" style="display: none;">
+            <span id="userRoleBadge" class="tag tag-blue">角色</span>
+            <span id="userEmailDisplay">user@example.com</span>
+            <button class="btn btn-outline" style="padding: 4px 10px; width:auto; font-size: 0.8rem;"
+                onclick="TrafficSystem.handleLogout()">登出切換</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Panels -->
+        <aside class="sidebar" id="sidebarContainer">
+
+            <!-- 民眾面板 (PUBLIC) -->
+            <div class="panel" id="panel-PUBLIC">
+                <div class="card">
+                    <h2>🗺️ 智慧路線規劃</h2>
+                    <div class="form-group">
+                        <label>起點</label>
+                        <input type="text" id="originInput" class="form-control" placeholder="輸入起點 (預設：目前位置)">
+                    </div>
+                    <div class="form-group">
+                        <label>終點</label>
+                        <input type="text" id="destInput" class="form-control" placeholder="輸入目的地 (例如: 台北101)">
+                    </div>
+                    <div class="form-group">
+                        <label>交通方式</label>
+                        <div class="btn-group">
+                            <div class="btn-icon active" data-mode="DRIVING"
+                                onclick="TrafficSystem.setTravelMode('DRIVING', this)">🚗</div>
+                            <div class="btn-icon" data-mode="TRANSIT"
+                                onclick="TrafficSystem.setTravelMode('TRANSIT', this)">🚌</div>
+                            <div class="btn-icon" data-mode="BICYCLING"
+                                onclick="TrafficSystem.setTravelMode('BICYCLING', this)">🚲</div>
+                            <div class="btn-icon" data-mode="WALKING"
+                                onclick="TrafficSystem.setTravelMode('WALKING', this)">🚶</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="TrafficSystem.calculateRoute()">開始導航</button>
+                    <div id="routeResult"
+                        style="margin-top: 10px; font-size: 0.9rem; color: #1a73e8; font-weight: 600;"></div>
+                </div>
+
+                <div class="card">
+                    <h2>📢 事故與路況異常回報</h2>
+                    <div class="form-group">
+                        <label>發生地點</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="reportLoc" class="form-control" placeholder="請在地圖選取位置" readonly
+                                style="background:#f8f9fa;">
+                            <button class="btn btn-outline" style="width: auto; white-space: nowrap; padding: 10px;"
+                                onclick="TrafficSystem.enableMapSelection(false)" id="selectLocBtn">📍 地圖選點</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>事件類型</label>
+                        <select id="reportType" class="form-control">
+                            <option value="交通事故">交通事故</option>
+                            <option value="道路壅塞">道路壅塞</option>
+                            <option value="道路施工">道路施工</option>
+                            <option value="道路障礙物">道路障礙物</option>
+                            <option value="號誌異常">號誌異常</option>
+                            <option value="其他交通問題">其他交通問題</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>狀況描述</label>
+                        <input type="text" id="reportDesc" class="form-control" placeholder="例如: 兩車追撞佔用外側車道">
+                    </div>
+                    <div class="form-group">
+                        <label>現場照片 (選填)</label>
+                        <input type="file" id="reportPhoto" class="form-control" accept="image/*" style="padding: 6px;">
+                    </div>
+                    <button class="btn btn-danger" onclick="TrafficSystem.submitReport()">送出即時回報</button>
+                </div>
+            </div>
+
+            <!-- 其他專屬面板 -->
+            <div class="panel" id="panel-POLICE">
+                <div class="card">
+                    <h2>🚨 TDX 即時通報與派遣</h2>
+                    <p style="font-size: 0.85rem;">請於下方總覽檢視最新事故。</p>
+                </div>
+                <div class="card">
+                    <h2>👥 民眾回報與派遣任務清單</h2>
+                    <div id="policeDispatchList" style="max-height: 150px; overflow-y:auto; margin-bottom: 8px;">
+                        <p style="font-size: 0.85rem; color: #888;">目前無等待派遣之民眾回報任務。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>📹 即時監視器 (CCTV)</h2>
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('cctv', this.checked)" checked> 顯示 CCTV 標記</label>
+                </div>
+            </div>
+            <div class="panel" id="panel-MANAGEMENT">
+                <div class="card">
+                    <h2>👥 民眾回報與派遣任務清單</h2>
+                    <div id="mgmtDispatchList" style="max-height: 150px; overflow-y:auto; margin-bottom: 8px;">
+                        <p style="font-size: 0.85rem; color: #888;">目前無等待派遣之民眾回報任務。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>🚦 智慧號誌管理</h2>
+                    <div class="list-item">
+                        <div class="list-item-title">基隆路口 <span class="tag tag-green">AI 自動</span></div>
+                    </div>
+                </div>
+                <!-- 智慧環境與路側設備監控 UI -->
+                <div class="card">
+                    <h2>🌐 智慧環境與路側設備監控</h2>
+                    <p style="font-size: 0.85rem; margin-bottom: 5px;">車輛偵測器 (VD) 連線狀態：<span
+                            style="color:var(--traffic-green); font-weight:bold;">🟢 正常</span></p>
+                    <p style="font-size: 0.85rem; margin-bottom: 10px;">智慧路燈感測器回傳率：<span
+                            style="color:var(--traffic-blue); font-weight:bold;">98.5%</span></p>
+                    <div id="liveLogConsole"
+                        style="background:#111; color:#0f0; font-family:monospace; font-size:0.75rem; padding:10px; border-radius:6px; height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:5px;">
+                        <div>[系統] 終端連線已建立，等待資料傳輸...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel" id="panel-WEATHER">
+                <div class="card">
+                    <h2>⛅ 氣象路況預警</h2><button class="btn btn-outline">發布大雨特報</button>
+                </div>
+            </div>
+            <div class="panel" id="panel-TRANSIT">
+                <div class="card">
+                    <h2>🚇 班次調度管理</h2><button class="btn btn-outline">發布加班車指令</button>
+                </div>
+                <!-- 智慧環境與路側設備監控 UI -->
+                <div class="card">
+                    <h2>🌐 智慧環境與路側設備監控</h2>
+                    <p style="font-size: 0.85rem; margin-bottom: 5px;">車輛偵測器 (VD) 連線狀態：<span
+                            style="color:var(--traffic-green); font-weight:bold;">🟢 正常</span></p>
+                    <p style="font-size: 0.85rem; margin-bottom: 10px;">智慧路燈感測器回傳率：<span
+                            style="color:var(--traffic-blue); font-weight:bold;">98.5%</span></p>
+                    <div id="transitLiveLogConsole"
+                        style="background:#111; color:#0f0; font-family:monospace; font-size:0.75rem; padding:10px; border-radius:6px; height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:5px;">
+                        <div>[系統] 終端連線已建立，等待資料傳輸...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🗺️ 圖層顯示篩選 -->
+            <div class="card" style="margin: 20px 20px 0 20px; flex-shrink: 0;" id="layerFilterCard">
+                <h2>🗺️ 圖層顯示篩選</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('parking', this.checked)" checked> 🅿️ 停車場</label>
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('shared', this.checked)" checked> 🚲 YouBike</label>
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('transit', this.checked)" checked> 🚇 大眾運輸</label>
+                    <label class="checkbox-label"><input type="checkbox" id="filterCctv"
+                            onchange="TrafficSystem.toggleMarkers('cctv', this.checked)" checked> 📷 CCTV</label>
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('trafficLights', this.checked)" checked> 🚦
+                        智慧號誌</label>
+                    <label class="checkbox-label"><input type="checkbox"
+                            onchange="TrafficSystem.toggleMarkers('enforcement', this.checked)" checked> 📸 科技執法</label>
+                </div>
+                <div style="font-size: 0.8rem; color: #555; border-top: 1px dashed #ddd; padding-top: 8px;">
+                    <b>圖例：</b> 🅿️ 停車場 / 🚲 YouBike / 🚇 運輸 / 📷 監視器 / 🚦 號誌 / 📸 科技執法
+                </div>
+            </div>
+
+            <!-- 清單總覽 (All Roles) -->
+            <div class="card" style="margin: 20px; flex-shrink: 0;" id="globalListCard">
+                <h2>📋 區域動態總覽 (方圓 1.5 公里)</h2>
+                <p style="font-size: 0.85rem; color:#5f6368; margin-bottom: 12px;" id="dataSourceLabel">資料來源：等待驗證中...
+                </p>
+
+                <div class="accordion-header" style="color: var(--traffic-orange);"
+                    onclick="TrafficSystem.toggleList('list-accidents')"><span style="font-weight: 600;">🚨
+                        交通事故通報</span> <span>▼</span></div>
+                <div id="list-accidents" style="display:none; max-height: 250px; overflow-y:auto; margin-bottom: 8px;">
+                </div>
+
+                <div class="accordion-header" style="color: #34a853;" onclick="TrafficSystem.toggleList('list-cctv')">
+                    <span style="font-weight: 600;">📹 CCTV 監視器</span> <span>▼</span>
+                </div>
+                <div id="list-cctv" style="display:none; max-height: 250px; overflow-y:auto; margin-bottom: 8px;"></div>
+
+                <div class="accordion-header" style="color: #1a73e8;"
+                    onclick="TrafficSystem.toggleList('list-parking')"><span style="font-weight: 600;">🅿️ 停車場與空位</span>
+                    <span>▼</span>
+                </div>
+                <div id="list-parking" style="display:none; max-height: 250px; overflow-y:auto; margin-bottom: 8px;">
+                </div>
+
+                <div class="accordion-header" style="color: #f4b400;"
+                    onclick="TrafficSystem.toggleList('list-transit')"><span style="font-weight: 600;">🚇 大眾運輸動態</span>
+                    <span>▼</span>
+                </div>
+                <div id="list-transit" style="display:none; max-height: 250px; overflow-y:auto; margin-bottom: 8px;">
+                </div>
+
+                <div class="accordion-header" style="color: #4285F4;" onclick="TrafficSystem.toggleList('list-shared')">
+                    <span style="font-weight: 600;">🚲 YouBike 2.0</span> <span>▼</span>
+                </div>
+                <div id="list-shared" style="display:none; max-height: 250px; overflow-y:auto; margin-bottom: 8px;">
+                </div>
+            </div>
+            <!-- 🚗 實時行駛模擬告警面板 -->
+            <div id="drivingAlertCard" class="card"
+                style="margin: 0 20px 20px 20px; flex-shrink: 0; display: none; border: 2px solid #d32f2f; background-color: #fffafa; text-align: center;">
+                <h2 style="color: #d32f2f; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span style="font-size: 1.2rem; animation: pulse 1s infinite;">🔊</span> 實時行駛模擬告警
+                </h2>
+                <div id="drivingAlertText"
+                    style="font-size: 0.95rem; font-weight: bold; color: #b71c1c; margin-top: 5px;">
+                    (告警內容)
+                </div>
+            </div>
+            <style>
+                @keyframes pulse {
+                    0% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+
+                    50% {
+                        transform: scale(1.3);
+                        opacity: 0.7;
+                    }
+
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            </style>
+        </aside>
+
+        <main class="map-area">
+
+
+            <div id="map"></div>
+
+            <div class="legend">
+                <h3>路況與事件圖例</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--traffic-green)"></div> 順暢
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--traffic-yellow)"></div> 車多
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--traffic-red)"></div> 壅塞
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--traffic-orange)"></div> 即時事故
+                </div>
+                <hr style="border: 0; border-top: 1px solid #dadce0; margin: 8px 0;">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1a73e8; border-radius: 50%;"></div> 設施/站點
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #db4437; border-radius: 50%;"></div> 我的位置
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Core Application Logic in TrafficSystem Namespace -->
+    <script>
+        const TrafficSystem = {
+            // Configuration
+            CONFIG: {
+                apiKey: "AIzaSyCTMzCFqhXKCz9bZUFs7sGn28HVmU9m__A",
+                centerTaipei: { lat: 25.0478, lng: 121.5170 }, // 台北車站預設
+                zoom: 15
+            },
+
+            // ==========================================
+            // [本地全區大數據緩存設定]
+            // ==========================================
+            MOCK_USERS_KEY: 'sts_mock_users',
+            AUTH_TOKEN_KEY: 'sts_access_token',
+
+            // Global Map State
+            currentUser: null,
+            map: null,
+            trafficLayer: null,    // [真實路況圖層] Google 官方 TrafficLayer
+            infoWindow: null,
+            myLocationMarker: null,
+            tempSelectionMarker: null,
+            mapSelectionListener: null,
+            directionsService: null,
+            directionsRenderer: null,
+            currentTravelMode: 'DRIVING',
+
+            // TDX Config (Real API)
+            TDX_CONFIG: {
+                CLIENT_ID: '14366042-a49c7065-ce01-40be',
+                CLIENT_SECRET: 'c66c5776-209c-4cd4-9deb-1c2ff55366b6'
+            },
+            tdxToken: null,
+            isUseMockFallback: false,
+
+            // Async Fetching State
+            isFetching: false,
+            dragTimeout: null,
+            smartLightsRendered: false,
+
+            // Map Layers Collections
+            markers: { accidents: [], parking: [], transit: [], shared: [], cctv: [], infrastructure: [], trafficLights: [], enforcement: [] },
+            displayedData: { accidents: [], parking: [], transit: [], shared: [], cctv: [] },
+            dispatchList: [],
+
+            // ==========================================
+            // [精準區域模擬資料庫] - 全台北市各大核心商圈
+            // ==========================================
+            mockDatabase: { parking: [], metro: [], bus: [], shared: [], cctv: [], accidents: [] },
+
+            async initializeTdxAndLoadData() {
+                try {
+                    const params = new URLSearchParams();
+                    params.append('grant_type', 'client_credentials');
+                    params.append('client_id', this.TDX_CONFIG.CLIENT_ID);
+                    params.append('client_secret', this.TDX_CONFIG.CLIENT_SECRET);
+
+                    const res = await fetch('https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token', {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                        body: params
+                    });
+
+                    if (!res.ok) throw new Error('TDX Token Error');
+                    const data = await res.json();
+                    this.tdxToken = data.access_token;
+                    this.isUseMockFallback = false;
+                } catch (err) {
+                    console.warn("TDX API Auth Failed, fallback to mock generation", err);
+                    this.isUseMockFallback = true;
+                    this.isFetching = false;
+                }
+            },
+
+            // ==========================================
+            // [系統初始化與認證]
+            // ==========================================
+            init() {
+                if (!localStorage.getItem(this.MOCK_USERS_KEY)) {
+                    localStorage.setItem(this.MOCK_USERS_KEY, JSON.stringify([{ email: 'admin@test.com', password: '1234', role: 'MANAGEMENT' }]));
+                }
+
+                this.initGoogleMap(this.CONFIG.centerTaipei);
+                this.initializeTdxAndLoadData();
+
+                this.checkAuth();
+            },
+
+            switchAuthTab(tab) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+                if (tab === 'login') {
+                    document.querySelectorAll('.tab')[0].classList.add('active');
+                    document.getElementById('form-login').classList.add('active');
+                } else if (tab === 'register') {
+                    document.querySelectorAll('.tab')[1].classList.add('active');
+                    document.getElementById('form-register').classList.add('active');
+                } else {
+                    document.querySelectorAll('.tab')[2].classList.add('active');
+                    document.getElementById('form-dev').classList.add('active');
+                }
+            },
+
+            handleRegister() {
+                const email = document.getElementById('regEmail').value;
+                const pw = document.getElementById('regPassword').value;
+                const role = document.getElementById('regRole').value;
+                if (!email || !pw) return alert('請完整填寫');
+                let users = JSON.parse(localStorage.getItem(this.MOCK_USERS_KEY));
+                users.push({ email, password: pw, role });
+                localStorage.setItem(this.MOCK_USERS_KEY, JSON.stringify(users));
+                this.switchRole(role, email);
+            },
+
+            handleLogin() {
+                const email = document.getElementById('loginEmail').value;
+                const pw = document.getElementById('loginPassword').value;
+                let users = JSON.parse(localStorage.getItem(this.MOCK_USERS_KEY));
+                const user = users.find(u => u.email === email && u.password === pw);
+                if (user) { this.switchRole(user.role, user.email); } else { alert('帳號密碼錯誤'); }
+            },
+
+            switchRole(role, email = null) {
+                const finalEmail = email || `dev_${role.toLowerCase()}@test.com`;
+                this.startLoadingAnimation(finalEmail, role);
+            },
+
+            startLoadingAnimation(email, role) {
+                const loader = document.getElementById('mapLoader');
+                if (loader) {
+                    loader.classList.add('show');
+                    setTimeout(() => loader.classList.add('fade-in'), 10);
+                }
+
+                // Disable login buttons during animation
+                document.querySelectorAll('.login-form .btn').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                });
+
+                const steps = [
+                    { p: 25, t: "🔄 正在連結大台北智慧交通整合資料庫..." },
+                    { p: 50, t: "🅿️ 正在同步大台北 5 大商圈動態賸餘車位與 YouBike 2.0 站點 (50%)..." },
+                    { p: 75, t: "🚇 正在加載大眾運輸站牌與路口 CCTV 監控網路 (75%)..." },
+                    { p: 90, t: "⚠️ 正在整合道路即時路況與天候風險報告 (90%)..." },
+                    { p: 100, t: "✅ 全區智慧交通數據加載完畢！" }
+                ];
+
+                let currentStep = 0;
+
+                const updateLoaderProgress = (percent, text) => {
+                    const textEl = document.getElementById('loaderText');
+                    const progressEl = document.getElementById('loaderProgress');
+                    if (textEl) textEl.innerText = text;
+                    if (progressEl) progressEl.style.width = percent + '%';
+                };
+
+                updateLoaderProgress(0, "啟動加載程序...");
+
+                const interval = setInterval(() => {
+                    if (currentStep >= steps.length) {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            this.loginUser(email, role);
+                        }, 500); // 停頓0.5秒後進入地圖
+                        return;
+                    }
+                    updateLoaderProgress(steps[currentStep].p, steps[currentStep].t);
+                    currentStep++;
+                }, 200); // 依據需求，每隔200毫秒更新
+            },
+
+            loginUser(email, role) {
+                const token = 'mock_jwt_' + btoa(email + ':' + role);
+                localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+                this.initSession(email, role);
+            },
+
+            handleLogout() { localStorage.removeItem(this.AUTH_TOKEN_KEY); location.reload(); },
+
+            checkAuth() {
+                const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
+                if (token && token.startsWith('mock_jwt_')) {
+                    try {
+                        const payload = atob(token.replace('mock_jwt_', '')).split(':');
+                        this.initSession(payload[0], payload[1]);
+                    } catch (e) { document.getElementById('loginOverlay').style.display = 'flex'; }
+                } else {
+                    document.getElementById('loginOverlay').style.display = 'flex';
+                }
+            },
+
+            initSession(email, role) {
+                this.currentUser = { email, role };
+
+                // 動畫 100% 後平滑隱藏 loginOverlay 與 loader
+                const loader = document.getElementById('mapLoader');
+                if (loader) {
+                    loader.classList.remove('fade-in');
+                    setTimeout(() => { loader.classList.remove('show'); }, 300);
+                }
+
+                const overlay = document.getElementById('loginOverlay');
+                overlay.style.transition = 'opacity 0.5s ease';
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 500);
+
+                this.startLiveLogSimulation(role);
+
+                document.getElementById('userInfoDisplay').style.display = 'flex';
+                document.getElementById('userEmailDisplay').innerText = email;
+                document.getElementById('userRoleBadge').innerText = role;
+
+                // [核心安全機制] 根據角色切換 CCTV 顯示狀態，並整合 Google Maps TrafficLayer
+                const isPoliceOrMgmt = role === 'POLICE' || role === 'MANAGEMENT';
+                if (this.markers && this.markers.cctv) {
+                    this.markers.cctv.forEach(m => m.setMap(isPoliceOrMgmt ? this.map : null));
+                }
+                if (this.trafficLayer) {
+                    this.trafficLayer.setMap(isPoliceOrMgmt ? this.map : null);
+                }
+
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                const panel = document.getElementById(`panel-${role}`);
+                if (panel) panel.classList.add('active');
+
+                this.requestGeolocation();
+            },
+
+            // ==========================================
+            // [記憶體釋放與終極圖層清理器]
+            // ==========================================
+            clearAllMapLayers() {
+                if (!this.map) return;
+
+                // 1. 遍歷並清空所有 Marker
+                Object.keys(this.markers).forEach(key => {
+                    // 【致命 Bug 修復】絕對排除清理：基礎設施、智慧號誌、與科技執法
+                    if (key === 'infrastructure' || key === 'trafficLights' || key === 'enforcement') return; 
+                    this.markers[key].forEach(m => m.setMap(null));
+                    this.markers[key] = [];
+                });
+
+                // 2. 清空導航路線
+                if (this.directionsRenderer) {
+                    this.directionsRenderer.setDirections({ routes: [] });
+                }
+
+                // 3. 清除 InfoWindow 與手動標記
+                if (this.infoWindow) this.infoWindow.close();
+                if (this.tempSelectionMarker) {
+                    this.tempSelectionMarker.setMap(null);
+                    this.tempSelectionMarker = null;
+                }
+
+                // 4. 重置 UI 資料陣列
+                Object.keys(this.displayedData).forEach(k => this.displayedData[k] = []);
+                this.renderListViews();
+            },
+
+            // ==========================================
+            // [GPS 定位與導航初始化]
+            // ==========================================
+            requestGeolocation() {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => { this.handleLocationSuccess(position.coords.latitude, position.coords.longitude); },
+                        (error) => {
+                            console.warn("GPS 失敗，自動回退至台北車站。");
+                            document.getElementById('locationErrorModal').style.display = 'flex';
+                            this.handleLocationSuccess(this.CONFIG.centerTaipei.lat, this.CONFIG.centerTaipei.lng, true);
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    );
+                } else {
+                    this.handleLocationSuccess(this.CONFIG.centerTaipei.lat, this.CONFIG.centerTaipei.lng, true);
+                }
+            },
+
+            handleLocationSuccess(lat, lng, isFallback = false) {
+                if (this.map) {
+                    this.map.panTo({ lat, lng });
+                    this.map.setZoom(15);
+                    this.updateMyLocationMarker(lat, lng);
+                } else {
+                    this.initGoogleMap({ lat, lng });
+                }
+            },
+
+            startManualLocation() {
+                document.getElementById('locationErrorModal').style.display = 'none';
+                this.enableMapSelection(true);
+            },
+
+            initGoogleMap(initialCenter) {
+                if (this.map) return;
+                this.map = new google.maps.Map(document.getElementById("map"), {
+                    center: initialCenter || this.CONFIG.centerTaipei,
+                    zoom: this.CONFIG.zoom,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: true
+                });
+
+                // 啟動 Google Maps 官方即時路況圖層
+                this.trafficLayer = new google.maps.TrafficLayer();
+
+                this.placesService = new google.maps.places.PlacesService(this.map);
+
+                // 綁定路線導航關鍵字自動完成
+                new google.maps.places.Autocomplete(document.getElementById('originInput'));
+                new google.maps.places.Autocomplete(document.getElementById('destInput'));
+
+                this.infoWindow = new google.maps.InfoWindow({ maxWidth: 320 });
+                this.directionsService = new google.maps.DirectionsService();
+                this.directionsRenderer = new google.maps.DirectionsRenderer({ map: this.map, panel: document.getElementById("routeResult") });
+
+                this.renderSmartTrafficLights();
+                this.fetchPoliceStations();
+                this.renderEnforcementCameras();
+                this.loadIncidentsFromSQLite();
+
+                // 綁定 idle 事件來達成動態即時載入
+                this.map.addListener('idle', () => {
+                    if (this.dragTimeout) clearTimeout(this.dragTimeout);
+                    this.dragTimeout = setTimeout(() => {
+                        this.fetchRegionalDataRealTDX();
+                    }, 300);
+                });
+
+                // 綁定動態逼近科技執法告警
+                this.map.addListener('center_changed', () => {
+                    this.checkSpeedCamerasProximity(this.map.getCenter());
+                });
+
+                if (initialCenter) {
+                    this.updateMyLocationMarker(initialCenter.lat, initialCenter.lng);
+                }
+            },
+
+            updateMyLocationMarker(lat, lng) {
+                if (this.myLocationMarker) {
+                    this.myLocationMarker.setPosition({ lat, lng });
+                } else {
+                    this.myLocationMarker = new google.maps.Marker({
+                        position: { lat, lng }, map: this.map,
+                        title: "您的位置",
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: "#db4437", fillOpacity: 1, strokeColor: "white", strokeWeight: 2 },
+                        animation: google.maps.Animation.DROP
+                    });
+                }
+            },
+
+            // ==========================================
+            // [後端資料庫整合 - 讀取真實事故]
+            // ==========================================
+            async loadIncidentsFromSQLite() {
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/api/incidents');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            this.displayedData.accidents = [];
+                            this.dispatchList = [];
+                            // 清除舊有的 markers
+                            this.markers.accidents.forEach(m => m.setMap(null));
+                            this.markers.accidents = [];
+
+                            data.data.forEach(inc => {
+                                this.displayedData.accidents.push(inc);
+                                this.createAccidentMarker(inc.lat, inc.lng, inc.title, inc.desc, inc.id, true, inc.time);
+                                this.syncReportToDispatch(inc, false); // 僅加入 list，後續批次渲染
+                            });
+                            this.renderDispatchLists();
+                        }
+                    }
+                } catch (e) {
+                    console.error("無法連線至本地 SQLite 伺服器", e);
+                }
+            },
+
+            // ==========================================
+            // [前端即時動態異步串接 (Idle Event)]
+            // ==========================================
+            fetchRegionalDataRealTDX() {
+                if (!this.currentUser) return;
+                if (this.isFetching) return;
+                this.isFetching = true;
+
+                this.clearAllMapLayers();
+
+                const center = this.map.getCenter();
+                const lat = center.lat();
+                const lng = center.lng();
+
+                document.getElementById('dataSourceLabel').innerHTML = `<span style="color:#f4b400; font-weight:600;">資料來源：${this.isUseMockFallback ? 'Google 本地真實位置 + 即時動態模擬數據' : '交通部 TDX 真實即時串接'}</span>`;
+
+                Promise.all([
+                    this.fetchRealParking(lat, lng),
+                    this.fetchRealYouBike(lat, lng),
+                    this.fetchRealAccidents(lat, lng),
+                    this.generateDynamicMockData(lat, lng) // Bus, Metro, CCTV using Google Places
+                ]).then(() => {
+                    this.renderListViews();
+                    this.isFetching = false;
+                }).catch(err => {
+                    console.error(err);
+                    this.isFetching = false;
+                });
+            },
+
+            searchPlacesAsync(lat, lng, keyword, type) {
+                return new Promise((resolve) => {
+                    if (!this.placesService) return resolve([]);
+                    const request = {
+                        location: new google.maps.LatLng(lat, lng),
+                        radius: '1500',
+                    };
+                    if (keyword) request.keyword = keyword;
+                    if (type) request.type = type;
+
+                    this.placesService.nearbySearch(request, (results, status) => {
+                        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                            resolve(results);
+                        } else {
+                            resolve([]);
+                        }
+                    });
+                });
+            },
+
+            async fetchRealParking(lat, lng) {
+                if (this.isUseMockFallback) return this.mockParkingFallback(lat, lng);
+                try {
+                    const filter = `$spatialFilter=nearby(${lat},${lng},1500)`;
+                    const res = await fetch(`https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/ParkingAvailability/City/Taipei?${filter}&$format=JSON`, {
+                        headers: { 'Authorization': `Bearer ${this.tdxToken}` }
+                    });
+                    if (!res.ok) throw new Error("API fail");
+                    const data = await res.json();
+                    if (!data || data.length === 0) return this.mockParkingFallback(lat, lng);
+
+                    const resInfo = await fetch(`https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/CarPark/City/Taipei?${filter}&$format=JSON`, {
+                        headers: { 'Authorization': `Bearer ${this.tdxToken}` }
+                    });
+                    const infoData = resInfo.ok ? await resInfo.json() : [];
+
+                    data.forEach(p => {
+                        const info = infoData.find(i => i.CarParkID === p.CarParkID);
+                        const pLat = info && info.CarParkPosition ? info.CarParkPosition.PositionLat : null;
+                        const pLng = info && info.CarParkPosition ? info.CarParkPosition.PositionLon : null;
+                        const pName = info && info.CarParkName ? info.CarParkName.Zh_tw : '公有停車場';
+                        const fare = info && info.FareDescription ? info.FareDescription : '依現場公告';
+
+                        // 如果沒有座標就跳過
+                        if (!pLat || !pLng) return;
+
+                        let pObj = { lat: pLat, lng: pLng, name: pName, avail: p.AvailableSpaces, total: info ? info.TotalSpaces : 100, fare: fare };
+                        this.displayedData.parking.push(pObj);
+
+                        const color = pObj.avail > 0 ? 'var(--traffic-green)' : 'var(--traffic-red)';
+                        const sourceLabel = `<div style="font-size: 0.75rem; color: #888; margin-top: 5px;">（資料來源：交通部 TDX 真實串接）</div>`;
+                        const content = `<h3 style="font-size: 1rem; margin-bottom: 5px;">🅿️ ${pObj.name}</h3><p>費率: <b>${pObj.fare}</b></p><p>動態剩餘車位: <span style="color:${color}; font-weight:bold;">${pObj.avail}</span> / ${pObj.total}</p>${sourceLabel}`;
+                        this.createMapMarker(this.markers.parking, { lat: pLat, lng: pLng }, 'P', content, '#1a73e8', true);
+                    });
+                } catch (e) {
+                    this.mockParkingFallback(lat, lng);
+                }
+            },
+
+            async fetchRealYouBike(lat, lng) {
+                if (this.isUseMockFallback) return this.mockYouBikeFallback(lat, lng);
+                try {
+                    const filter = `$spatialFilter=nearby(${lat},${lng},1500)`;
+                    const res = await fetch(`https://tdx.transportdata.tw/api/basic/v2/Bike/Availability/City/Taipei?${filter}&$format=JSON`, {
+                        headers: { 'Authorization': `Bearer ${this.tdxToken}` }
+                    });
+                    const resStation = await fetch(`https://tdx.transportdata.tw/api/basic/v2/Bike/Station/City/Taipei?${filter}&$format=JSON`, {
+                        headers: { 'Authorization': `Bearer ${this.tdxToken}` }
+                    });
+                    if (!res.ok || !resStation.ok) throw new Error("API fail");
+                    const data = await res.json();
+                    const stations = await resStation.json();
+
+                    if (!data || data.length === 0) return this.mockYouBikeFallback(lat, lng);
+
+                    stations.forEach(st => {
+                        const avail = data.find(d => d.StationUID === st.StationUID);
+                        if (avail) {
+                            const bikes = avail.AvailableRentBikes;
+                            const spaces = avail.AvailableReturnBikes;
+                            this.displayedData.shared.push(st);
+                            const color = bikes > 0 ? 'var(--traffic-yellow)' : 'var(--text-dark)';
+                            const sourceLabel = `<div style="font-size: 0.75rem; color: #888; margin-top: 5px;">（資料來源：交通部 TDX 真實串接）</div>`;
+                            const content = `<h3 style="font-size: 1rem; margin-bottom: 5px; color: var(--traffic-yellow)">🚲 ${st.StationName.Zh_tw}</h3><p>目前可借車輛: <b>${bikes}</b></p><p>可還車位: <b>${spaces}</b></p>${sourceLabel}`;
+                            this.createMapMarker(this.markers.shared, { lat: st.StationPosition.PositionLat, lng: st.StationPosition.PositionLon }, 'B', content, 'var(--traffic-yellow)', true);
+                        }
+                    });
+                } catch (e) {
+                    this.mockYouBikeFallback(lat, lng);
+                }
+            },
+
+            async fetchRealAccidents(lat, lng) {
+                if (this.isUseMockFallback) return this.mockAccidentFallback(lat, lng);
+                try {
+                    const filter = `$spatialFilter=nearby(${lat},${lng},1500)`;
+                    const res = await fetch(`https://tdx.transportdata.tw/api/basic/v2/Road/Traffic/Live/Alert/City/Taipei?${filter}&$format=JSON`, {
+                        headers: { 'Authorization': `Bearer ${this.tdxToken}` }
+                    });
+                    if (!res.ok) throw new Error("API fail");
+                    const data = await res.json();
+                    if (!data || data.length === 0) return this.mockAccidentFallback(lat, lng);
+
+                    data.forEach(a => {
+                        this.displayedData.accidents.push(a);
+                        this.createAccidentMarker(a.Position.PositionLat, a.Position.PositionLon, a.Title || '路況異常', a.Description || '即時路況通報', a.id || Date.now() + Math.random());
+                    });
+                } catch (e) {
+                    this.mockAccidentFallback(lat, lng);
+                }
+            },
+
+            async mockParkingFallback(lat, lng) {
+                const results = await this.searchPlacesAsync(lat, lng, '停車場', 'parking');
+                results.slice(0, 15).forEach(place => {
+                    const pLat = place.geometry.location.lat();
+                    const pLng = place.geometry.location.lng();
+                    let p = { lat: pLat, lng: pLng, name: place.name, total: 100 + Math.floor(Math.random() * 50), avail: Math.floor(Math.random() * 50), fare: '40~60元/時' };
+                    this.displayedData.parking.push(p);
+                    const color = p.avail > 0 ? 'var(--traffic-green)' : 'var(--traffic-red)';
+                    const content = `<h3 style="font-size: 1rem; margin-bottom: 5px;">🅿️ ${p.name}</h3><p>費率: <b>${p.fare}</b></p><p>動態剩餘車位: <span style="color:${color}; font-weight:bold;">${p.avail}</span> / ${p.total}</p>`;
+                    this.createMapMarker(this.markers.parking, { lat: pLat, lng: pLng }, 'P', content, '#1a73e8', true);
+                });
+            },
+
+            async mockYouBikeFallback(lat, lng) {
+                const results = await this.searchPlacesAsync(lat, lng, 'YouBike', 'point_of_interest');
+                results.slice(0, 15).forEach(place => {
+                    const sLat = place.geometry.location.lat();
+                    const sLng = place.geometry.location.lng();
+                    let s = { lat: sLat, lng: sLng, name: place.name, bikes: Math.floor(Math.random() * 30), spaces: Math.floor(Math.random() * 20) };
+                    this.displayedData.shared.push(s);
+                    const color = s.bikes > 0 ? 'var(--traffic-yellow)' : 'var(--text-dark)';
+                    const sourceLabel = `<div style="font-size: 0.75rem; color: #888; margin-top: 5px;">（資料來源：Google Places 實時地點搜尋 + 動態數值模擬）</div>`;
+                    const content = `<h3 style="font-size: 1rem; margin-bottom: 5px; color: var(--traffic-yellow)">🚲 ${s.name}</h3><p>目前可借車輛: <b>${s.bikes}</b></p><p>可還車位: <b>${s.spaces}</b></p>${sourceLabel}`;
+                    this.createMapMarker(this.markers.shared, { lat: sLat, lng: sLng }, 'B', content, 'var(--traffic-yellow)', true);
+                });
+            },
+
+            async mockAccidentFallback(lat, lng) {
+                // 已廢棄：不再隨機產生模擬的事故，全面改用後端 SQLite 真持久化通報紀錄。
+                // 這裡保留空方法以防舊有程式碼呼叫導致錯誤。
+            },
+
+            async generateDynamicMockData(lat, lng) {
+                // Transit Stations (Metro/Bus)
+                const transitResults = await this.searchPlacesAsync(lat, lng, '捷運 或 公車', 'transit_station');
+                transitResults.slice(0, 15).forEach(place => {
+                    const isMetro = place.name.includes('捷運') || place.name.includes('Station');
+                    const tLat = place.geometry.location.lat();
+                    const tLng = place.geometry.location.lng();
+
+                    if (isMetro) {
+                        let m = { type: 'metro', time: '約 3 分鐘進站', lat: tLat, lng: tLng, name: place.name, lines: '市區幹線' };
+                        this.displayedData.transit.push(m);
+                        const mContent = `<h3 style="font-size: 1rem; margin-bottom: 5px; color: var(--traffic-green)">🚇 ${m.name}</h3><p>下一班車預估: <b>${m.time}</b></p>`;
+                        this.createMapMarker(this.markers.transit, { lat: tLat, lng: tLng }, '🚇', mContent, 'var(--traffic-green)', true);
+                    } else {
+                        let b = { type: 'bus', time: '約 5 分鐘進站', lat: tLat, lng: tLng, name: place.name };
+                        this.displayedData.transit.push(b);
+                        const bContent = `<h3 style="font-size: 1rem; margin-bottom: 5px; color: var(--traffic-blue)">🚌 ${b.name}</h3><p>下一班車預估: <b>${b.time}</b></p>`;
+                        this.createMapMarker(this.markers.transit, { lat: tLat, lng: tLng }, '🚌', bContent, 'var(--traffic-blue)', true);
+                    }
+                });
+
+                // CCTV (Simulate at intersections based on places)
+                const cctvResults = await this.searchPlacesAsync(lat, lng, '路口', 'point_of_interest');
+                cctvResults.slice(0, 8).forEach(place => {
+                    const cLat = place.geometry.location.lat();
+                    const cLng = place.geometry.location.lng();
+                    let c = { lat: cLat, lng: cLng, name: `${place.name} 周邊路口監視器` };
+                    this.displayedData.cctv.push(c);
+                    const cContent = `<h3 style="font-size: 0.95rem; margin-bottom: 8px;">📹 ${c.name}</h3>
+                                     <div style="font-size: 0.85rem; margin-bottom: 5px; color: #555;">路口監測畫面模擬</div>
+                                     <img src="https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&w=300&q=80" style="width: 100%; max-width: 300px; border-radius: 4px;" alt="CCTV 畫面">`;
+                    let isVisible = this.currentUser && (this.currentUser.role === 'POLICE' || this.currentUser.role === 'MANAGEMENT');
+                    this.createMapMarker(this.markers.cctv, { lat: cLat, lng: cLng }, '📷', cContent, 'var(--traffic-green)', isVisible);
+                });
+            },
+
+            startLiveLogSimulation(role) {
+                if (role !== 'MANAGEMENT' && role !== 'TRANSIT') return;
+                setInterval(() => {
+                    const logs = [
+                        "信義路二段/金山南路口號誌控制器雙向連線建立成功，持續收集全路網實時車速。",
+                        "偵測到基隆路車流密度提高，已啟動區域聯控機制。",
+                        "大安森林公園周邊感測器資料同步完畢 (回傳率 99.1%)。",
+                        "VD-XIN-013 設備心跳封包正常。",
+                        "智慧路燈控制單元回傳即時能耗報告。"
+                    ];
+                    const msg = logs[Math.floor(Math.random() * logs.length)];
+                    const timeStr = new Date().toLocaleTimeString();
+                    const logLine = `<div>[${timeStr}] [連線確認] ${msg}</div>`;
+
+                    const el = document.getElementById(role === 'MANAGEMENT' ? 'liveLogConsole' : 'transitLiveLogConsole');
+                    if (el) {
+                        el.insertAdjacentHTML('beforeend', logLine);
+                        if (el.children.length > 20) el.removeChild(el.firstElementChild);
+                        el.scrollTop = el.scrollHeight;
+                    }
+                }, 3500);
+            },
+
+            renderSmartTrafficLights() {
+                if (this.smartLightsRendered) return;
+                this.smartLightsRendered = true;
+                // 信義路沿線路口
+                const points = [
+                    { lat: 25.03332, lng: 121.53322, name: '信義新生南路口' },
+                    { lat: 25.03328, lng: 121.53738, name: '信義建國南路口' },
+                    { lat: 25.03310, lng: 121.54911, name: '信義敦化南路口' },
+                    { lat: 25.03303, lng: 121.55745, name: '信義光復南路口' },
+                    { lat: 25.03341, lng: 121.56524, name: '信義基隆路口' }
+                ];
+
+                points.forEach(p => {
+                    const marker = new google.maps.Marker({
+                        position: { lat: p.lat, lng: p.lng },
+                        map: this.map,
+                        label: { text: '🚦', fontSize: '16px' },
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 18, fillColor: '#333', fillOpacity: 0.9, strokeColor: "#0f0", strokeWeight: 2 },
+                        zIndex: 999
+                    });
+
+                    marker.addListener('click', () => {
+                        this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:#666;">正在向 Google Maps 請求即時路況資料...</p></div>`);
+                        this.infoWindow.open(this.map, marker);
+
+                        // 發送極短距導航請求以獲取 duration_in_traffic
+                        const offset = 0.0015; // 約 150 公尺
+                        const request = {
+                            origin: new google.maps.LatLng(p.lat, p.lng - offset),
+                            destination: new google.maps.LatLng(p.lat, p.lng + offset),
+                            travelMode: google.maps.TravelMode.DRIVING,
+                            drivingOptions: {
+                                departureTime: new Date() // Must be specified for traffic model
+                            }
+                        };
+
+                        this.directionsService.route(request, (result, status) => {
+                            if (status === 'OK' && result.routes.length > 0) {
+                                const leg = result.routes[0].legs[0];
+                                const normalSec = leg.duration.value;
+                                const trafficSec = leg.duration_in_traffic ? leg.duration_in_traffic.value : normalSec;
+                                const ratio = trafficSec / normalSec;
+
+                                let statusText = '';
+                                let extendedTime = 0;
+                                let sColor = '';
+                                let message = '';
+
+                                if (ratio > 1.8) {
+                                    statusText = '嚴重壅塞';
+                                    extendedTime = 25;
+                                    sColor = 'var(--traffic-red)';
+                                    message = `Google 真實路況 API 感測：該路段嚴重壅塞！AI 已自動將東西向綠燈秒數延長 ${extendedTime} 秒，以利交通疏導。`;
+                                } else if (ratio >= 1.3) {
+                                    statusText = '車多';
+                                    extendedTime = 10;
+                                    sColor = 'var(--traffic-orange)';
+                                    message = `Google 真實路況 API 感測：車流略增，綠燈自動延長 ${extendedTime} 秒。`;
+                                } else {
+                                    statusText = '順暢';
+                                    sColor = 'var(--traffic-green)';
+                                    message = `目前周邊路況順暢，維持標準綠燈秒數。`;
+                                }
+
+                                const htmlContent = `
+                                    <h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3>
+                                    <p>當前車流狀態：<span style="color:${sColor}; font-weight:bold;">${statusText}</span></p>
+                                    <p>正常預估：${normalSec} 秒，目前延遲：<b style="color:${sColor}">${trafficSec} 秒</b> (比值: ${ratio.toFixed(2)})</p>
+                                    <p style="margin-top: 5px; font-size: 0.85rem; color:#555;">${message}</p>
+                                `;
+                                this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;">${htmlContent}</div>`);
+                            } else {
+                                this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:red;">API 請求失敗，無法取得路況。</p></div>`);
+                            }
+                        });
+                    });
+                    this.markers.trafficLights.push(marker);
+                });
+            },
+
+            renderEnforcementCameras() {
+                // 部署在大台北核心幹道的模擬科技執法點位
+                const points = [
+                    { lat: 25.0416, lng: 121.5436, name: '忠孝東路三段', type: '科技執法違停偵測' },
+                    { lat: 25.0333, lng: 121.5642, name: '信義路五段', type: '科技執法違停偵測' },
+                    { lat: 25.0450, lng: 121.5070, name: '中華路一段', type: '固定式測速' },
+                    { lat: 25.0200, lng: 121.5400, name: '基隆路二段', type: '固定式測速' },
+                    { lat: 25.0500, lng: 121.5300, name: '建國北路一段', type: '區間測速' }
+                ];
+                points.forEach(p => {
+                    const marker = new google.maps.Marker({
+                        position: { lat: p.lat, lng: p.lng },
+                        map: this.map,
+                        label: { text: '📸', fontSize: '14px' },
+                        title: p.name,
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14, fillColor: '#000', fillOpacity: 0.8, strokeColor: "#ffeb3b", strokeWeight: 2 },
+                        zIndex: 950
+                    });
+                    const content = `
+                        <h3 style="color: #d32f2f; margin-bottom: 8px;">📸 科技執法路段：${p.name}</h3>
+                        <p>執法類型：<b>${p.type}</b></p>
+                        <p>限速：<b>50 公里</b></p>
+                        <p style="color: #2e7d32; margin-top: 5px;">狀態：運作中（預防違規與提升行車安全）</p>
+                    `;
+                    marker.addListener('click', () => {
+                        this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif;">${content}</div>`);
+                        this.infoWindow.open(this.map, marker);
+                    });
+                    this.markers.enforcement.push(marker);
+                });
+            },
+
+            checkSpeedCamerasProximity(currentLatLng) {
+                if (!currentLatLng || !google.maps.geometry) return;
+                let isNearCamera = false;
+                let nearestCamera = null;
+                let minDistance = Infinity;
+
+                // 檢查是否距離任何測速照相 < 300 公尺
+                this.markers.enforcement.forEach(marker => {
+                    const distance = google.maps.geometry.spherical.computeDistanceBetween(currentLatLng, marker.getPosition());
+                    if (distance < 300) {
+                        isNearCamera = true;
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestCamera = marker.title;
+                        }
+                    }
+                });
+
+                const alertCard = document.getElementById('drivingAlertCard');
+                if (isNearCamera && alertCard) {
+                    alertCard.style.display = 'block';
+                    document.getElementById('drivingAlertText').innerHTML = `⚠️ 前方約 ${Math.round(minDistance)} 公尺！<br>${nearestCamera} 科技執法/測速路段<br>限速 50 公里，請減速慢行並遵守交通規則！`;
+                    // 發出一次性的全域紅框通知
+                    if (!this._lastAlertTime || Date.now() - this._lastAlertTime > 30000) {
+                        this.showGlobalAlert(`⚠️ 逼近科技執法路段：${nearestCamera}，距離約 ${Math.round(minDistance)} 公尺！`);
+                        this._lastAlertTime = Date.now();
+                    }
+                } else if (alertCard) {
+                    alertCard.style.display = 'none';
+                }
+            },
+
+            async fetchPoliceStations() {
+                this.policeStations = [];
+                const request = {
+                    location: this.CONFIG.centerTaipei,
+                    radius: '15000',
+                    type: 'police_station'
+                };
+                if (!this.placesService) return;
+                this.placesService.nearbySearch(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+
+                        results.forEach(place => {
+                            const pLat = place.geometry.location.lat();
+                            const pLng = place.geometry.location.lng();
+                            const marker = new google.maps.Marker({
+                                position: { lat: pLat, lng: pLng },
+                                map: this.map,
+                                title: place.name,
+                                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 12, fillColor: '#1a73e8', fillOpacity: 0.9, strokeColor: "#fff", strokeWeight: 2 },
+                                zIndex: 900
+                            });
+                            marker.setLabel({ text: '🚓', fontSize: '14px' });
+
+                            this.markers.infrastructure.push(marker);
+                            this.policeStations.push({ name: place.name, lat: pLat, lng: pLng });
+                        });
+                    }
+                });
+            },
+
+            createAccidentMarker(lat, lng, title, desc, id, isUserReport = false) {
+                let closestPoliceInfo = "";
+                let closestPolice = null;
+
+                if (this.policeStations && this.policeStations.length > 0 && google.maps.geometry) {
+                    const accPos = new google.maps.LatLng(lat, lng);
+                    let minDistance = Infinity;
+                    this.policeStations.forEach(ps => {
+                        const psPos = new google.maps.LatLng(ps.lat, ps.lng);
+                        const distance = google.maps.geometry.spherical.computeDistanceBetween(accPos, psPos);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestPolice = { name: ps.name, distance: Math.round(distance) };
+                        }
+                    });
+                }
+
+                let dispatchHtml = "";
+                if (this.currentUser && (this.currentUser.role === 'POLICE' || this.currentUser.role === 'MANAGEMENT')) {
+                    if (closestPolice) {
+                        dispatchHtml = `
+                            <div id="dispatch-area-${id}" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                <div style="font-size: 0.9rem; color: #d32f2f; font-weight: bold; margin-bottom: 4px;">🚨 事故調度狀態：等待派遣中</div>
+                                <div style="font-size: 0.85rem; margin-bottom: 8px;">🎯 系統推薦最適分局：<br><b>${closestPolice.name}</b> (距離約 ${closestPolice.distance} 公尺)</div>
+                                <button class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 一鍵調度派遣</button>
+                            </div>
+                        `;
+                    } else {
+                        dispatchHtml = `
+                            <div id="dispatch-area-${id}" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                <div style="font-size: 0.9rem; color: #d32f2f; font-weight: bold; margin-bottom: 4px;">🚨 事故調度狀態：等待派遣中</div>
+                                <div style="font-size: 0.85rem; margin-bottom: 8px; color:#555;">(系統正在搜尋周邊警局資源...)</div>
+                                <button class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 手動調度派遣</button>
+                            </div>
+                        `;
+                    }
+                }
+
+                let reportTags = "";
+                if (isUserReport) {
+                    let severity = "普通-預計 30 分鐘內排除";
+                    if (title.includes("事故") || title.includes("追撞") || title.includes("車禍")) severity = "急件-預計 15 分鐘內排除";
+                    if (title.includes("施工")) severity = "一般-已通知工程單位";
+
+                    reportTags = `
+                        <div style="background: #fff8e1; border-left: 3px solid #ffb300; padding: 8px; margin-top: 8px; font-size: 0.85rem; border-radius: 4px;">
+                            <div style="margin-bottom: 4px;">📋 分類驗證：<b>${title}</b> ➔ 系統已發送警察/交管單位處理</div>
+                            <div>⏳ 任務時序分配：<b>${severity}</b></div>
+                        </div>
+                    `;
+                }
+
+                const content = `
+                    <h3 style="color: var(--traffic-orange); margin-bottom: 8px;">⚠️ ${title}</h3>
+                    <p style="font-size: 0.95rem;">${desc}</p>
+                    ${reportTags}
+                    ${dispatchHtml}
+                `;
+                this.createMapMarker(this.markers.accidents, { lat, lng }, '!', content, "var(--traffic-orange)", true);
+            },
+
+            // ==========================================
+            // [智慧路線導航核心邏輯]
+            // ==========================================
+            setTravelMode(mode, btnElement) {
+                this.currentTravelMode = mode;
+                document.querySelectorAll('.btn-icon').forEach(el => el.classList.remove('active'));
+                btnElement.classList.add('active');
+            },
+
+            calculateRoute() {
+                if (!this.map || !this.directionsService || !this.directionsRenderer) return;
+
+                const origin = document.getElementById('originInput').value;
+                const dest = document.getElementById('destInput').value;
+                const resDiv = document.getElementById('routeResult');
+
+                if (!dest) { alert("請輸入目的地"); return; }
+
+                const requestOrigin = origin ? origin : (this.myLocationMarker ? this.myLocationMarker.getPosition() : this.CONFIG.centerTaipei);
+
+                const request = {
+                    origin: requestOrigin,
+                    destination: dest,
+                    travelMode: google.maps.TravelMode[this.currentTravelMode],
+                    provideRouteAlternatives: true
+                };
+
+                this.directionsService.route(request, (result, status) => {
+                    if (status == 'OK') {
+                        this.directionsRenderer.setDirections(result);
+                        const route = result.routes[0].legs[0];
+                        resDiv.innerHTML = `✅ 規劃完成！距離: ${route.distance.text}，預計時間: ${route.duration.text}`;
+                    } else {
+                        resDiv.innerHTML = `<span style="color: red;">❌ 找不到對應的導航路線</span>`;
+                    }
+                });
+            },
+
+            // ==========================================
+            // [UI 與 Map Util 功能]
+            // ==========================================
+            createMapMarker(groupArray, position, labelText, htmlContent, bgColor, isVisible) {
+                if (!this.map) return null;
+                const marker = new google.maps.Marker({
+                    position: position, map: isVisible ? this.map : null,
+                    label: { text: labelText, fontSize: '13px', color: '#fff', fontWeight: 'bold' },
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14, fillColor: bgColor, fillOpacity: 0.95, strokeColor: "#ffffff", strokeWeight: 2 }
+                });
+                marker.htmlContent = htmlContent;
+                marker.addListener("click", () => {
+                    this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 150px;">${htmlContent}</div>`);
+                    this.infoWindow.open(this.map, marker);
+                });
+                groupArray.push(marker);
+                return marker;
+            },
+
+            toggleMarkers(groupName, isVisible) {
+                if (groupName === 'cctv') {
+                    // Check permissions for CCTV
+                    const canViewCCTV = this.currentUser && (this.currentUser.role === 'POLICE' || this.currentUser.role === 'MANAGEMENT');
+                    if (!canViewCCTV) return;
+                }
+                if (this.markers[groupName]) {
+                    this.markers[groupName].forEach(m => m.setMap(isVisible ? this.map : null));
+                }
+            },
+
+            toggleList(id) {
+                const el = document.getElementById(id);
+                if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            },
+
+            openMarkerInfo(groupName, index, lat, lng) {
+                if (!this.map) return;
+                if (this.markers[groupName] && this.markers[groupName][index]) {
+                    const marker = this.markers[groupName][index];
+                    this.map.panTo({ lat, lng }); this.map.setZoom(17);
+                    this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 150px;">${marker.htmlContent}</div>`);
+                    this.infoWindow.open(this.map, marker);
+                }
+            },
+
+            renderListViews() {
+                const renderArray = (arr, containerId, titleHtml, descHtml, markerGroup) => {
+                    const el = document.getElementById(containerId);
+                    if (!el) return;
+                    el.innerHTML = (!arr || arr.length === 0) ? '<div style="padding:10px; color:#999; font-size:0.85rem;">此區域暫無資料</div>' : '';
+                    if (!arr) return;
+                    arr.forEach((item, index) => {
+                        const div = document.createElement('div'); div.className = 'list-item';
+                        div.innerHTML = `
+                            <div class="list-item-title">${titleHtml(item)}</div>
+                            <div class="list-item-desc">${descHtml(item)}</div>
+                            <div class="list-item-actions">
+                                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.75rem;" onclick="TrafficSystem.openMarkerInfo('${markerGroup}', ${index}, ${item.lat}, ${item.lng})">📍 地圖定位</button>
+                            </div>`;
+                        el.appendChild(div);
+                    });
+                };
+
+                renderArray(this.displayedData.accidents, 'list-accidents', a => `<span>⚠️ ${a.title}</span>`, a => `${a.desc}`, 'accidents');
+                renderArray(this.displayedData.cctv, 'list-cctv', c => `📹 ${c.name}`, c => `影像串流就緒`, 'cctv');
+                renderArray(this.displayedData.parking, 'list-parking', p => `🅿️ ${p.name}`, p => `車位: <b>${p.avail}</b> / ${p.total}`, 'parking');
+                renderArray(this.displayedData.transit, 'list-transit', t => `${t.type === 'metro' ? '🚇' : '🚌'} ${t.name}`, t => `動態: <b>${t.time}</b>`, 'transit');
+                renderArray(this.displayedData.shared, 'list-shared', s => `🚲 ${s.name}`, s => `車輛: <b>${s.bikes}</b>`, 'shared');
+            },
+
+            enableMapSelection(isInitialLocation = false) {
+                if (!this.map) return;
+                const btn = document.getElementById('selectLocBtn');
+                if (this.mapSelectionListener) {
+                    google.maps.event.removeListener(this.mapSelectionListener);
+                    this.mapSelectionListener = null;
+                    if (btn) { btn.innerText = '📍 地圖選點'; btn.classList.remove('active'); }
+                    this.map.setOptions({ draggableCursor: null });
+                } else {
+                    alert(isInitialLocation ? '請在地圖上點擊以設定您的當前位置' : '進入選點模式：請直接在地圖上點擊事故發生位置');
+                    if (btn) { btn.innerText = '❌ 取消選取'; btn.classList.add('active'); }
+                    this.map.setOptions({ draggableCursor: 'crosshair' });
+
+                    this.mapSelectionListener = this.map.addListener('click', (e) => {
+                        const lat = e.latLng.lat();
+                        const lng = e.latLng.lng();
+
+                        if (isInitialLocation) {
+                            this.handleLocationSuccess(lat, lng);
+                        } else {
+                            document.getElementById('reportLoc').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                            if (this.tempSelectionMarker) this.tempSelectionMarker.setMap(null);
+                            this.tempSelectionMarker = new google.maps.Marker({
+                                position: e.latLng, map: this.map,
+                                icon: { path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW, scale: 6, fillColor: "red", fillOpacity: 0.9, strokeWeight: 2, strokeColor: "white" }
+                            });
+                        }
+
+                        google.maps.event.removeListener(this.mapSelectionListener);
+                        this.mapSelectionListener = null;
+                        if (btn) { btn.innerText = '📍 重新選點'; btn.classList.remove('active'); }
+                        this.map.setOptions({ draggableCursor: null });
+                    });
+                }
+            },
+
+            submitReport() {
+                if (!this.map) return;
+                const loc = document.getElementById('reportLoc').value;
+                const desc = document.getElementById('reportDesc').value;
+                const typeEl = document.getElementById('reportType');
+                const type = typeEl ? typeEl.value : '交通事故';
+                if (!loc || !desc) return alert("請填寫發生地點與狀況描述");
+
+                let newLat, newLng;
+                if (this.tempSelectionMarker) {
+                    newLat = this.tempSelectionMarker.getPosition().lat(); newLng = this.tempSelectionMarker.getPosition().lng();
+                    this.tempSelectionMarker.setMap(null); this.tempSelectionMarker = null;
+                } else { newLat = this.map.getCenter().lat(); newLng = this.map.getCenter().lng(); }
+
+                const reportId = Date.now();
+                const reportData = { id: reportId, lat: newLat, lng: newLng, title: type, desc: desc, time: "剛剛" };
+                this.displayedData.accidents.unshift(reportData);
+                this.createAccidentMarker(newLat, newLng, type, desc, reportId, true);
+
+                this.syncReportToDispatch(reportData);
+
+                document.getElementById('reportLoc').value = ''; document.getElementById('reportDesc').value = '';
+                document.getElementById('selectLocBtn').innerText = '📍 地圖選點';
+                if (document.getElementById('reportPhoto')) document.getElementById('reportPhoto').value = '';
+
+                this.showGlobalAlert(`收到新路況通報: ${type} - ${desc}`);
+                this.map.panTo({ lat: newLat, lng: newLng }); this.map.setZoom(16);
+            },
+
+            syncReportToDispatch(reportData) {
+                this.dispatchList.unshift(reportData);
+                const html = this.dispatchList.map(r => `
+                    <div style="border-left: 3px solid #d32f2f; background: #fdfdfd; padding: 8px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; font-size: 0.9rem; color: #d32f2f;">🚨 ${r.title}</div>
+                        <div style="font-size: 0.85rem; color: #555; margin-top: 4px;">描述: ${r.desc}</div>
+                        <div style="font-size: 0.8rem; color: #888; margin-top: 4px;">通報時間: ${r.time}</div>
+                    </div>
+                `).join('');
+                const polList = document.getElementById('policeDispatchList');
+                if (polList) polList.innerHTML = html;
+                const mgmtList = document.getElementById('mgmtDispatchList');
+                if (mgmtList) mgmtList.innerHTML = html;
+            },
+
+            showGlobalAlert(msg) {
+                const alertEl = document.getElementById('globalAlert');
+                document.getElementById('globalAlertText').innerText = msg;
+                alertEl.classList.add('show');
+                setTimeout(() => alertEl.classList.remove('show'), 6000);
+            }
+        };
+
+        window.initMap = () => TrafficSystem.init();
+    </script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCTMzCFqhXKCz9bZUFs7sGn28HVmU9m__A&callback=initMap&libraries=places,geometry"
+        async defer></script>
+</body>
+
+</html>
