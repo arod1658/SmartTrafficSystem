@@ -561,7 +561,7 @@
                         placeholder="輸入 Email"></div>
                 <div class="form-group"><label>密碼</label><input type="password" id="loginPassword" class="form-control"
                         placeholder="輸入密碼"></div>
-                <button class="btn" onclick="TrafficSystem.handleLogin()">登入系統</button>
+                <button type="button" class="btn" onclick="TrafficSystem.handleLogin(event)">登入系統</button>
             </div>
 
             <div class="login-form" id="form-register">
@@ -577,19 +577,19 @@
                         <option value="TRANSIT">🚇 運輸單位</option>
                     </select>
                 </div>
-                <button class="btn" onclick="TrafficSystem.handleRegister()">註冊並登入</button>
+                <button type="button" class="btn" onclick="TrafficSystem.handleRegister(event)">註冊並登入</button>
             </div>
 
             <div class="login-form" id="form-dev">
-                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('PUBLIC')" style="padding: 8px;">👤
+                <button type="button" class="btn btn-outline" onclick="TrafficSystem.switchRole('PUBLIC', null, event)" style="padding: 8px;">👤
                     一般民眾</button>
-                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('POLICE')" style="padding: 8px;">👮
+                <button type="button" class="btn btn-outline" onclick="TrafficSystem.switchRole('POLICE', null, event)" style="padding: 8px;">👮
                     警察單位</button>
-                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('MANAGEMENT')"
+                <button type="button" class="btn btn-outline" onclick="TrafficSystem.switchRole('MANAGEMENT', null, event)"
                     style="padding: 8px;">🏢 交通管理單位</button>
-                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('WEATHER')" style="padding: 8px;">⛅
+                <button type="button" class="btn btn-outline" onclick="TrafficSystem.switchRole('WEATHER', null, event)" style="padding: 8px;">⛅
                     氣象預報單位</button>
-                <button class="btn btn-outline" onclick="TrafficSystem.switchRole('TRANSIT')" style="padding: 8px;">🚇
+                <button type="button" class="btn btn-outline" onclick="TrafficSystem.switchRole('TRANSIT', null, event)" style="padding: 8px;">🚇
                     大眾運輸單位</button>
             </div>
 
@@ -610,7 +610,7 @@
             <h3 style="color: var(--traffic-orange); margin-bottom: 15px;">⚠️ 無法取得 GPS 定位</h3>
             <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px; line-height: 1.5;">
                 系統無法自動獲取您的位置，或是您拒絕了權限請求。已為您預設平移至「台北車站」，您可以手動拖曳地圖或點擊按鈕重設中心點。</p>
-            <button class="btn" onclick="TrafficSystem.startManualLocation()">手動在地圖上選取</button>
+            <button type="button" class="btn" onclick="TrafficSystem.startManualLocation(event)">手動在地圖上選取</button>
         </div>
     </div>
 
@@ -624,8 +624,8 @@
         <div class="user-info" id="userInfoDisplay" style="display: none;">
             <span id="userRoleBadge" class="tag tag-blue">角色</span>
             <span id="userEmailDisplay">user@example.com</span>
-            <button class="btn btn-outline" style="padding: 4px 10px; width:auto; font-size: 0.8rem;"
-                onclick="TrafficSystem.handleLogout()">登出切換</button>
+            <button type="button" class="btn btn-outline" style="padding: 4px 10px; width:auto; font-size: 0.8rem;"
+                onclick="TrafficSystem.handleLogout(event)">登出切換</button>
         </div>
     </header>
 
@@ -658,7 +658,7 @@
                                 onclick="TrafficSystem.setTravelMode('WALKING', this)">🚶</div>
                         </div>
                     </div>
-                    <button class="btn" onclick="TrafficSystem.calculateRoute()">開始導航</button>
+                    <button type="button" class="btn" onclick="TrafficSystem.calculateRoute(event)">開始導航</button>
                     <div id="routeResult"
                         style="margin-top: 10px; font-size: 0.9rem; color: #1a73e8; font-weight: 600;"></div>
                 </div>
@@ -670,8 +670,8 @@
                         <div style="display:flex; gap:8px;">
                             <input type="text" id="reportLoc" class="form-control" placeholder="請在地圖選取位置" readonly
                                 style="background:#f8f9fa;">
-                            <button class="btn btn-outline" style="width: auto; white-space: nowrap; padding: 10px;"
-                                onclick="TrafficSystem.enableMapSelection(false)" id="selectLocBtn">📍 地圖選點</button>
+                            <button type="button" class="btn btn-outline" style="width: auto; white-space: nowrap; padding: 10px;"
+                                onclick="TrafficSystem.enableMapSelection(false, event)" id="selectLocBtn">📍 地圖選點</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -693,7 +693,7 @@
                         <label>現場照片 (選填)</label>
                         <input type="file" id="reportPhoto" class="form-control" accept="image/*" style="padding: 6px;">
                     </div>
-                    <button class="btn btn-danger" onclick="TrafficSystem.submitReport()">送出即時回報</button>
+                    <button type="button" class="btn btn-danger" onclick="TrafficSystem.submitReport(event)">送出即時回報</button>
                 </div>
             </div>
 
@@ -964,10 +964,6 @@
             // [系統初始化與認證]
             // ==========================================
             init() {
-                if (!localStorage.getItem(this.MOCK_USERS_KEY)) {
-                    localStorage.setItem(this.MOCK_USERS_KEY, JSON.stringify([{ email: 'admin@test.com', password: '1234', role: 'MANAGEMENT' }]));
-                }
-
                 this.initGoogleMap(this.CONFIG.centerTaipei);
                 this.initializeTdxAndLoadData();
 
@@ -989,26 +985,60 @@
                 }
             },
 
-            handleRegister() {
+            async handleRegister(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 const email = document.getElementById('regEmail').value;
                 const pw = document.getElementById('regPassword').value;
                 const role = document.getElementById('regRole').value;
-                if (!email || !pw) return alert('請完整填寫');
-                let users = JSON.parse(localStorage.getItem(this.MOCK_USERS_KEY));
-                users.push({ email, password: pw, role });
-                localStorage.setItem(this.MOCK_USERS_KEY, JSON.stringify(users));
-                this.switchRole(role, email);
+                if (!email || !pw) { alert("請輸入完整註冊資訊"); return; }
+                
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password: pw, role, is_register: true })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert("註冊成功！系統將自動為您登入");
+                        localStorage.setItem(this.AUTH_TOKEN_KEY, data.token);
+                        this.switchRole(data.role, data.email);
+                    } else {
+                        alert("註冊失敗: " + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("無法連線至本地驗證伺服器");
+                }
             },
 
-            handleLogin() {
+            async handleLogin(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 const email = document.getElementById('loginEmail').value;
                 const pw = document.getElementById('loginPassword').value;
-                let users = JSON.parse(localStorage.getItem(this.MOCK_USERS_KEY));
-                const user = users.find(u => u.email === email && u.password === pw);
-                if (user) { this.switchRole(user.role, user.email); } else { alert('帳號密碼錯誤'); }
+                if (!email || !pw) { alert("請輸入完整登入資訊"); return; }
+
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password: pw, is_register: false })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        localStorage.setItem(this.AUTH_TOKEN_KEY, data.token);
+                        this.switchRole(data.role, data.email);
+                    } else {
+                        alert('登入失敗: ' + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("無法連線至本地驗證伺服器");
+                }
             },
 
-            switchRole(role, email = null) {
+            switchRole(role, email = null, event = null) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 const finalEmail = email || `dev_${role.toLowerCase()}@test.com`;
                 this.startLoadingAnimation(finalEmail, role);
             },
@@ -1020,7 +1050,6 @@
                     setTimeout(() => loader.classList.add('fade-in'), 10);
                 }
 
-                // Disable login buttons during animation
                 document.querySelectorAll('.login-form .btn').forEach(btn => {
                     btn.disabled = true;
                     btn.style.opacity = '0.5';
@@ -1029,14 +1058,13 @@
 
                 const steps = [
                     { p: 25, t: "🔄 正在連結大台北智慧交通整合資料庫..." },
-                    { p: 50, t: "🅿️ 正在同步大台北 5 大商圈動態賸餘車位與 YouBike 2.0 站點 (50%)..." },
+                    { p: 50, t: "🅿️ 正在同步大台北商圈動態賸餘車位與 YouBike 2.0 (50%)..." },
                     { p: 75, t: "🚇 正在加載大眾運輸站牌與路口 CCTV 監控網路 (75%)..." },
                     { p: 90, t: "⚠️ 正在整合道路即時路況與天候風險報告 (90%)..." },
                     { p: 100, t: "✅ 全區智慧交通數據加載完畢！" }
                 ];
 
                 let currentStep = 0;
-
                 const updateLoaderProgress = (percent, text) => {
                     const textEl = document.getElementById('loaderText');
                     const progressEl = document.getElementById('loaderProgress');
@@ -1060,19 +1088,35 @@
             },
 
             loginUser(email, role) {
-                const token = 'mock_jwt_' + btoa(email + ':' + role);
-                localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+                // 如果是開發測試點擊進來，強制塞入 Token 避免跳出
+                if (!localStorage.getItem(this.AUTH_TOKEN_KEY)) {
+                    const devToken = 'jwt_dev_' + btoa(email + ':' + role);
+                    localStorage.setItem(this.AUTH_TOKEN_KEY, devToken);
+                }
                 this.initSession(email, role);
             },
 
-            handleLogout() { localStorage.removeItem(this.AUTH_TOKEN_KEY); location.reload(); },
+            handleLogout(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
+                localStorage.removeItem(this.AUTH_TOKEN_KEY); location.reload();
+            },
 
             checkAuth() {
                 const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
-                if (token && token.startsWith('mock_jwt_')) {
+                if (token && token.startsWith('jwt_')) {
                     try {
-                        const payload = atob(token.replace('mock_jwt_', '')).split(':');
-                        this.initSession(payload[0], payload[1]);
+                        const payload = token.split('_');
+                        const role = payload[2] || 'PUBLIC';
+                        // payload[1] 是 userId 或 dev，這裡模擬取得 email 供顯示
+                        const finalEmail = payload[1] === 'dev' ? atob(token.replace('jwt_dev_', '')).split(':')[0] : `user_${payload[1]}@sys.com`;
+                        
+                        // [嚴格防禦] 若已有憑證，直接隱藏遮罩，維持平滑狀態，不重複顯示動畫
+                        const overlay = document.getElementById('loginOverlay');
+                        if (overlay) overlay.style.display = 'none';
+                        const loader = document.getElementById('mapLoader');
+                        if (loader) loader.classList.remove('show', 'fade-in');
+
+                        this.initSession(finalEmail, role);
                     } catch (e) { document.getElementById('loginOverlay').style.display = 'flex'; }
                 } else {
                     document.getElementById('loginOverlay').style.display = 'flex';
@@ -1082,17 +1126,19 @@
             initSession(email, role) {
                 this.currentUser = { email, role };
 
-                // 動畫 100% 後平滑隱藏 loginOverlay 與 loader
+                // 動畫 100% 後平滑隱藏 loginOverlay 與 loader (若原本為隱藏狀態則不重複執行)
                 const loader = document.getElementById('mapLoader');
-                if (loader) {
+                if (loader && loader.classList.contains('show')) {
                     loader.classList.remove('fade-in');
                     setTimeout(() => { loader.classList.remove('show'); }, 300);
                 }
 
                 const overlay = document.getElementById('loginOverlay');
-                overlay.style.transition = 'opacity 0.5s ease';
-                overlay.style.opacity = '0';
-                setTimeout(() => { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 500);
+                if (overlay && overlay.style.display !== 'none') {
+                    overlay.style.transition = 'opacity 0.5s ease';
+                    overlay.style.opacity = '0';
+                    setTimeout(() => { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 500);
+                }
 
                 this.startLiveLogSimulation(role);
 
@@ -1124,8 +1170,8 @@
 
                 // 1. 遍歷並清空所有 Marker
                 Object.keys(this.markers).forEach(key => {
-                    // 【致命 Bug 修復】絕對排除清理：基礎設施、智慧號誌、與科技執法
-                    if (key === 'infrastructure' || key === 'trafficLights' || key === 'enforcement') return; 
+                    // 【致命 Bug 修復】絕對排除清理：基礎設施、智慧號誌、科技執法、以及 CCTV
+                    if (key === 'infrastructure' || key === 'trafficLights' || key === 'enforcement' || key === 'cctv') return; 
                     this.markers[key].forEach(m => m.setMap(null));
                     this.markers[key] = [];
                 });
@@ -1176,7 +1222,8 @@
                 }
             },
 
-            startManualLocation() {
+            startManualLocation(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 document.getElementById('locationErrorModal').style.display = 'none';
                 this.enableMapSelection(true);
             },
@@ -1204,7 +1251,7 @@
                 this.directionsService = new google.maps.DirectionsService();
                 this.directionsRenderer = new google.maps.DirectionsRenderer({ map: this.map, panel: document.getElementById("routeResult") });
 
-                this.renderSmartTrafficLights();
+                this.loadInfrastructureFromSQLite();
                 this.fetchPoliceStations();
                 this.renderEnforcementCameras();
                 this.loadIncidentsFromSQLite();
@@ -1501,84 +1548,91 @@
                 }, 3500);
             },
 
-            renderSmartTrafficLights() {
-                if (this.smartLightsRendered) return;
-                this.smartLightsRendered = true;
-                // 信義路沿線路口
-                const points = [
-                    { lat: 25.03332, lng: 121.53322, name: '信義新生南路口' },
-                    { lat: 25.03328, lng: 121.53738, name: '信義建國南路口' },
-                    { lat: 25.03310, lng: 121.54911, name: '信義敦化南路口' },
-                    { lat: 25.03303, lng: 121.55745, name: '信義光復南路口' },
-                    { lat: 25.03341, lng: 121.56524, name: '信義基隆路口' }
-                ];
+            async loadInfrastructureFromSQLite() {
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/api/infrastructure/all');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            // 渲染智慧號誌
+                            data.data.traffic_lights.forEach(p => {
+                                const marker = new google.maps.Marker({
+                                    position: { lat: p.lat, lng: p.lng },
+                                    map: this.map,
+                                    label: { text: '🚦', fontSize: '16px' },
+                                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 18, fillColor: '#333', fillOpacity: 0.9, strokeColor: "#0f0", strokeWeight: 2 },
+                                    zIndex: 999
+                                });
 
-                points.forEach(p => {
-                    const marker = new google.maps.Marker({
-                        position: { lat: p.lat, lng: p.lng },
-                        map: this.map,
-                        label: { text: '🚦', fontSize: '16px' },
-                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 18, fillColor: '#333', fillOpacity: 0.9, strokeColor: "#0f0", strokeWeight: 2 },
-                        zIndex: 999
-                    });
+                                marker.addListener('click', () => {
+                                    this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:#666;">正在向 Google Maps 請求即時路況資料...</p></div>`);
+                                    this.infoWindow.open(this.map, marker);
 
-                    marker.addListener('click', () => {
-                        this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:#666;">正在向 Google Maps 請求即時路況資料...</p></div>`);
-                        this.infoWindow.open(this.map, marker);
+                                    const offset = 0.0015;
+                                    const request = {
+                                        origin: new google.maps.LatLng(p.lat, p.lng - offset),
+                                        destination: new google.maps.LatLng(p.lat, p.lng + offset),
+                                        travelMode: google.maps.TravelMode.DRIVING,
+                                        drivingOptions: { departureTime: new Date() }
+                                    };
 
-                        // 發送極短距導航請求以獲取 duration_in_traffic
-                        const offset = 0.0015; // 約 150 公尺
-                        const request = {
-                            origin: new google.maps.LatLng(p.lat, p.lng - offset),
-                            destination: new google.maps.LatLng(p.lat, p.lng + offset),
-                            travelMode: google.maps.TravelMode.DRIVING,
-                            drivingOptions: {
-                                departureTime: new Date() // Must be specified for traffic model
-                            }
-                        };
+                                    this.directionsService.route(request, async (result, status) => {
+                                        if (status === 'OK' && result.routes.length > 0) {
+                                            const leg = result.routes[0].legs[0];
+                                            const normalSec = leg.duration.value;
+                                            const trafficSec = leg.duration_in_traffic ? leg.duration_in_traffic.value : normalSec;
+                                            const ratio = trafficSec / normalSec;
 
-                        this.directionsService.route(request, (result, status) => {
-                            if (status === 'OK' && result.routes.length > 0) {
-                                const leg = result.routes[0].legs[0];
-                                const normalSec = leg.duration.value;
-                                const trafficSec = leg.duration_in_traffic ? leg.duration_in_traffic.value : normalSec;
-                                const ratio = trafficSec / normalSec;
+                                            let statusText = ''; let extendedTime = 0; let sColor = ''; let message = '';
 
-                                let statusText = '';
-                                let extendedTime = 0;
-                                let sColor = '';
-                                let message = '';
+                                            if (ratio > 1.8) {
+                                                statusText = '嚴重壅塞'; extendedTime = 25; sColor = 'var(--traffic-red)';
+                                                message = `該路段嚴重壅塞！AI 已自動將綠燈秒數延長 ${extendedTime} 秒。`;
+                                            } else if (ratio >= 1.3) {
+                                                statusText = '車多'; extendedTime = 10; sColor = 'var(--traffic-orange)';
+                                                message = `車流略增，綠燈自動延長 ${extendedTime} 秒。`;
+                                            } else {
+                                                statusText = '順暢'; extendedTime = 0; sColor = 'var(--traffic-green)';
+                                                message = `目前路況順暢，維持標準綠燈秒數。`;
+                                            }
 
-                                if (ratio > 1.8) {
-                                    statusText = '嚴重壅塞';
-                                    extendedTime = 25;
-                                    sColor = 'var(--traffic-red)';
-                                    message = `Google 真實路況 API 感測：該路段嚴重壅塞！AI 已自動將東西向綠燈秒數延長 ${extendedTime} 秒，以利交通疏導。`;
-                                } else if (ratio >= 1.3) {
-                                    statusText = '車多';
-                                    extendedTime = 10;
-                                    sColor = 'var(--traffic-orange)';
-                                    message = `Google 真實路況 API 感測：車流略增，綠燈自動延長 ${extendedTime} 秒。`;
-                                } else {
-                                    statusText = '順暢';
-                                    sColor = 'var(--traffic-green)';
-                                    message = `目前周邊路況順暢，維持標準綠燈秒數。`;
-                                }
+                                            try {
+                                                await fetch('http://127.0.0.1:5000/api/traffic-lights/cycle', {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ name: p.name, extended_time: extendedTime })
+                                                });
+                                            } catch (e) { console.error("更新號誌時間失敗:", e); }
 
-                                const htmlContent = `
-                                    <h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3>
-                                    <p>當前車流狀態：<span style="color:${sColor}; font-weight:bold;">${statusText}</span></p>
-                                    <p>正常預估：${normalSec} 秒，目前延遲：<b style="color:${sColor}">${trafficSec} 秒</b> (比值: ${ratio.toFixed(2)})</p>
-                                    <p style="margin-top: 5px; font-size: 0.85rem; color:#555;">${message}</p>
-                                `;
-                                this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;">${htmlContent}</div>`);
-                            } else {
-                                this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:red;">API 請求失敗，無法取得路況。</p></div>`);
-                            }
-                        });
-                    });
-                    this.markers.trafficLights.push(marker);
-                });
+                                            const htmlContent = `
+                                                <h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3>
+                                                <p>當前車流狀態：<span style="color:${sColor}; font-weight:bold;">${statusText}</span></p>
+                                                <p>正常預估：${normalSec} 秒，目前延遲：<b style="color:${sColor}">${trafficSec} 秒</b></p>
+                                                <p style="margin-top: 5px; font-size: 0.85rem; color:#555;">${message}</p>
+                                                <p style="margin-top: 5px; font-size: 0.8rem; color:green;">(✔ AI 變時結果已同步至雲端資料庫)</p>
+                                            `;
+                                            this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;">${htmlContent}</div>`);
+                                        } else {
+                                            this.infoWindow.setContent(`<div style="padding: 10px; font-family: Inter, sans-serif; min-width: 200px;"><h3 style="margin-bottom: 8px;">🚦 智慧號誌：${p.name}</h3><p style="color:red;">API 請求失敗。</p></div>`);
+                                        }
+                                    });
+                                });
+                                this.markers.trafficLights.push(marker);
+                            });
+
+                            // 渲染 CCTV
+                            data.data.cctv_monitors.forEach(c => {
+                                const cContent = `<h3 style="font-size: 1rem; margin-bottom: 5px; color: var(--traffic-blue)">📹 ${c.name}</h3><p>類型: ${c.camera_type}</p><p>狀態: <b>${c.status}</b></p>`;
+                                const m = this.createMapMarker(this.markers.cctv, { lat: c.lat, lng: c.lng }, '📹', cContent, 'var(--traffic-blue)', true);
+                                this.displayedData.cctv.push({ name: c.name, type: c.camera_type, status: c.status });
+                            });
+                            
+                            this.renderListViews();
+                        }
+                    }
+                } catch (e) {
+                    console.error("載入基礎設施失敗:", e);
+                }
             },
 
             renderEnforcementCameras() {
@@ -1699,7 +1753,7 @@
                             <div id="dispatch-area-${id}" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
                                 <div style="font-size: 0.9rem; color: #d32f2f; font-weight: bold; margin-bottom: 4px;">🚨 事故調度狀態：等待派遣中</div>
                                 <div style="font-size: 0.85rem; margin-bottom: 8px;">🎯 系統推薦最適分局：<br><b>${closestPolice.name}</b> (距離約 ${closestPolice.distance} 公尺)</div>
-                                <button class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 一鍵調度派遣</button>
+                                <button type="button" class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 一鍵調度派遣</button>
                             </div>
                         `;
                     } else {
@@ -1707,7 +1761,7 @@
                             <div id="dispatch-area-${id}" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
                                 <div style="font-size: 0.9rem; color: #d32f2f; font-weight: bold; margin-bottom: 4px;">🚨 事故調度狀態：等待派遣中</div>
                                 <div style="font-size: 0.85rem; margin-bottom: 8px; color:#555;">(系統正在搜尋周邊警局資源...)</div>
-                                <button class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 手動調度派遣</button>
+                                <button type="button" class="btn btn-outline" style="width: 100%; padding: 4px 8px; font-size: 0.85rem;" onclick="document.getElementById('dispatch-area-${id}').innerHTML='<div style=\\'font-size: 0.9rem; color: #388e3c; font-weight: bold;\\'>🟢 警力已派遣，正在前往支援中</div>'">⚡ 手動調度派遣</button>
                             </div>
                         `;
                     }
@@ -1745,7 +1799,8 @@
                 btnElement.classList.add('active');
             },
 
-            calculateRoute() {
+            calculateRoute(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 if (!this.map || !this.directionsService || !this.directionsRenderer) return;
 
                 const origin = document.getElementById('originInput').value;
@@ -1763,11 +1818,29 @@
                     provideRouteAlternatives: true
                 };
 
-                this.directionsService.route(request, (result, status) => {
+                this.directionsService.route(request, async (result, status) => {
                     if (status == 'OK') {
                         this.directionsRenderer.setDirections(result);
                         const route = result.routes[0].legs[0];
                         resDiv.innerHTML = `✅ 規劃完成！距離: ${route.distance.text}，預計時間: ${route.duration.text}`;
+                        
+                        // 非同步寫入實體資料庫 (routes)
+                        try {
+                            const originText = typeof requestOrigin === 'string' ? requestOrigin : `${requestOrigin.lat()},${requestOrigin.lng()}`;
+                            const userId = this.currentUser ? this.currentUser.email : 'Guest';
+                            await fetch('http://127.0.0.1:5000/api/routes', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_id: userId,
+                                    origin: originText,
+                                    destination: dest,
+                                    travel_mode: this.currentTravelMode
+                                })
+                            });
+                        } catch(e) {
+                            console.error('紀錄導航歷史失敗:', e);
+                        }
                     } else {
                         resDiv.innerHTML = `<span style="color: red;">❌ 找不到對應的導航路線</span>`;
                     }
@@ -1844,7 +1917,8 @@
                 renderArray(this.displayedData.shared, 'list-shared', s => `🚲 ${s.name}`, s => `車輛: <b>${s.bikes}</b>`, 'shared');
             },
 
-            enableMapSelection(isInitialLocation = false) {
+            enableMapSelection(isInitialLocation = false, event = null) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 if (!this.map) return;
                 const btn = document.getElementById('selectLocBtn');
                 if (this.mapSelectionListener) {
@@ -1880,7 +1954,8 @@
                 }
             },
 
-            submitReport() {
+            async submitReport(event) {
+                if (event && typeof event.preventDefault === 'function') { event.preventDefault(); }
                 if (!this.map) return;
                 const loc = document.getElementById('reportLoc').value;
                 const desc = document.getElementById('reportDesc').value;
@@ -1894,23 +1969,51 @@
                     this.tempSelectionMarker.setMap(null); this.tempSelectionMarker = null;
                 } else { newLat = this.map.getCenter().lat(); newLng = this.map.getCenter().lng(); }
 
-                const reportId = Date.now();
-                const reportData = { id: reportId, lat: newLat, lng: newLng, title: type, desc: desc, time: "剛剛" };
-                this.displayedData.accidents.unshift(reportData);
-                this.createAccidentMarker(newLat, newLng, type, desc, reportId, true);
+                const reportId = String(Date.now()); // 轉為字串對齊 SQLite TEXT PRIMARY KEY
+                const reportTime = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+                const reportData = { id: reportId, lat: newLat, lng: newLng, title: type, desc: desc, time: reportTime, image_path: '' };
 
-                this.syncReportToDispatch(reportData);
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/api/incidents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reportData)
+                    });
+                    
+                    if (!res.ok) throw new Error("寫入伺服器失敗");
+                    
+                    const result = await res.json();
+                    if (result.status === 'success') {
+                        // 成功寫入資料庫後，才渲染前端畫面
+                        this.displayedData.accidents.unshift(reportData);
+                        this.createAccidentMarker(newLat, newLng, type, desc, reportId, true);
+                        
+                        this.syncReportToDispatch(reportData);
 
-                document.getElementById('reportLoc').value = ''; document.getElementById('reportDesc').value = '';
-                document.getElementById('selectLocBtn').innerText = '📍 地圖選點';
-                if (document.getElementById('reportPhoto')) document.getElementById('reportPhoto').value = '';
+                        document.getElementById('reportLoc').value = ''; document.getElementById('reportDesc').value = '';
+                        document.getElementById('selectLocBtn').innerText = '📍 地圖選點';
+                        if (document.getElementById('reportPhoto')) document.getElementById('reportPhoto').value = '';
 
-                this.showGlobalAlert(`收到新路況通報: ${type} - ${desc}`);
-                this.map.panTo({ lat: newLat, lng: newLng }); this.map.setZoom(16);
+                        this.showGlobalAlert(`收到新路況通報: ${type} - ${desc} (已永久寫入資料庫)`);
+                        this.map.panTo({ lat: newLat, lng: newLng }); this.map.setZoom(16);
+                    } else {
+                        alert("通報失敗：" + result.message);
+                    }
+                } catch (e) {
+                    console.error("提交事故時出錯：", e);
+                    alert("無法連線至本地伺服器寫入資料庫，請確認 server.py 已啟動！");
+                }
             },
 
-            syncReportToDispatch(reportData) {
-                this.dispatchList.unshift(reportData);
+            syncReportToDispatch(reportData, doRender = true) {
+                // 避免重複加入
+                if (!this.dispatchList.find(r => r.id === reportData.id)) {
+                    this.dispatchList.unshift(reportData);
+                }
+                if (doRender) this.renderDispatchLists();
+            },
+
+            renderDispatchLists() {
                 const html = this.dispatchList.map(r => `
                     <div style="border-left: 3px solid #d32f2f; background: #fdfdfd; padding: 8px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="font-weight: bold; font-size: 0.9rem; color: #d32f2f;">🚨 ${r.title}</div>
@@ -1918,10 +2021,12 @@
                         <div style="font-size: 0.8rem; color: #888; margin-top: 4px;">通報時間: ${r.time}</div>
                     </div>
                 `).join('');
+                const displayHtml = html || '<p style="font-size: 0.85rem; color: #888;">目前無等待派遣之民眾回報任務。</p>';
+                
                 const polList = document.getElementById('policeDispatchList');
-                if (polList) polList.innerHTML = html;
+                if (polList) polList.innerHTML = displayHtml;
                 const mgmtList = document.getElementById('mgmtDispatchList');
-                if (mgmtList) mgmtList.innerHTML = html;
+                if (mgmtList) mgmtList.innerHTML = displayHtml;
             },
 
             showGlobalAlert(msg) {
